@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.10.12
+Created-By: 1.8.0_321-b07 (Oracle Corporation)
+Main-Class: org.python.util.jython
+Built-By: Jeff
+Implementation-Vendor: Python Software Foundation
+Implementation-Title: Jython fat jar with stdlib
+Implementation-Version: 2.7.3
+
+Name: Build-Info
+version: 2.7.3
+git-build: true
+oracle: true
+informix: true
+build-compiler: modern
+jdk-target-version: 1.8
+debug: true
+
