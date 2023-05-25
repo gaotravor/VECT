@@ -16,7 +16,7 @@ To evaluate the effectiveness of VECT, we conducted an extensive study on three 
 
 <p align="center">Table 1: Comparison results of JavaTailor and VECT in terms of the number of</p>
 
-![1668416387446](png/1668416387446.jpg)
+![image-20230525132147545](png/20230525132147545.png)
 
 ### II. Preparation Work
 
