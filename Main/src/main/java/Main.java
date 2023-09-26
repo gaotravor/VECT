@@ -5,25 +5,23 @@ import JimpleMixer.core.MutationHelper;
 
 import core.*;
 
-import core.helper.CodeClusterHelper;
-import core.helper.MainHelper;
-import core.helper.SelectBlockHelper;
-import core.utils.ClazzUtils;
 import dtjvms.*;
 import dtjvms.executor.CFM.CFMExecutor;
 import dtjvms.executor.CFM.JvmOutput;
 import dtjvms.loader.DTLoader;
 
 import org.apache.commons.cli.CommandLine;
+import org.junit.Test;
 import soot.*;
 import soot.options.Options;
 
 import java.io.*;
 import java.util.*;
 
-import core.helper.ChecksumHelper;
+import core.ChecksumHelper;
 
-import static core.helper.MainHelper.coverageTest;
+import static core.MainHelper.coverageTest;
+import static core.MainHelper.getIngredientBlockRandom;
 
 /**
  * If you have followed the instructions described in the ReadMe, you can start the entire project here
@@ -42,11 +40,11 @@ public class Main {
     // pre-define file name
     public static String defineClassesPath = "testcases.txt";
 
-    public static int useClustering = CodeClusterHelper.NO_CLUSTER;
-    public static int selectMethod = SelectBlockHelper.RANDOM_SELECT;
-    public static boolean checksum = false;
+    public static int useClustering = CodeClusterHelper.PL_BART_CLUSTER;
+    public static int selectMethod = SelectBlockHelper.RWS_SELECT;
+    public static boolean checksum = true;
 
-    public static long exeTime = 60 * 60 * 9;
+    public static long exeTime = 60 * 60 * 24;
 
     public static boolean covTest = false; //JVM coverage collect flag
     public static String covJavaCmd = "/home/share/Fasttailor/jvmCov/openjdk/build/linux-x86_64-normal-server-release/jdk/bin/java"; // the path of JVM that can collect coverage
@@ -60,6 +58,9 @@ public class Main {
     public static String packagePath = "out"+DTPlatform.FILE_SEPARATOR+"production"+DTPlatform.FILE_SEPARATOR+"HotspotIssue";  // packagePath + packageName 指向项目的可用类
     public static String packageName = "Bug_triggering_input";
 
+    static {
+        Options.v().set_weak_map_structures(true);
+    }
     /**
      * Here we go！
      * @param args
@@ -92,8 +93,19 @@ public class Main {
         // Get JVM information
         ArrayList<JvmInfo> jvmCmds = DTLoader.getInstance().loadJvms();
         for (JvmInfo jvmCmd : jvmCmds) {
+            File file = new File(jvmCmd.getRootPath()+DTPlatform.FILE_SEPARATOR+jvmCmd.getFolderName()+DTPlatform.FILE_SEPARATOR+".options");
+            if(file.exists()){
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+                String line = bufferedReader.readLine();
+                while (line!=null)
+                {
+                    jvmCmd.setJavaCmd(jvmCmd.getJavaCmd()+" "+line);
+                    line = bufferedReader.readLine();
+                }
+            }
             System.out.println(jvmCmd);
         }
+
 
         // Generate the folder that holds the history program during execution
         String mutationHistoryPath = MainConfiguration.mutationHistoryPath +
@@ -124,8 +136,7 @@ public class Main {
             System.out.println(targetProject);
 
             // Initialize the soot environment
-            Configuration.initSootEnvWithClassPath(targetProject.getpClassPath());
-            Configuration.set_output_path(targetProject.getSrcClassPath());
+            sceneReset(targetProject.getpClassPath(), targetProject.getSrcClassPath());
             // Overwrite the files in SootOutput with files in 02Benchmark
             List<String> seedClasses = originProject.getApplicationClasses();
             MainHelper.restoreBadClasses(seedClasses, originProject, targetProject);
@@ -143,9 +154,7 @@ public class Main {
             List<String> mutationClasses = MainHelper.duplicateSeedsAndChangeModifiers(seedClasses);
 
             // reinitialize the SOOT environment
-            G.reset();
-            Configuration.initSootEnvWithClassPath(targetProject.getpClassPath());
-            Configuration.set_output_path(targetProject.getSrcClassPath());
+            sceneReset(targetProject.getpClassPath(), targetProject.getSrcClassPath());
 
             // Extract ingredients
             BlocksContainer.initMutantsFromClasses(mutationClasses);
@@ -166,8 +175,7 @@ public class Main {
             System.out.println(mutationProject);
 
             // Initialize the soot environment
-            Configuration.initSootEnvWithClassPath(mutationProject.getpClassPath());
-            Configuration.set_output_path(mutationProject.getSrcClassPath());
+            sceneReset(mutationProject.getpClassPath(), mutationProject.getSrcClassPath());
             // Overwrite the files in SootOutput with files in 02Benchmark
             List<String> originMutateClasses = originMutationProject.getApplicationClasses();
             MainHelper.restoreBadClasses(originMutateClasses, originMutationProject, mutationProject);
@@ -175,14 +183,7 @@ public class Main {
             List<String> mutationClasses = MainHelper.duplicateSeedsAndChangeModifiers(originMutateClasses);
 
             // reinitialize the SOOT environment
-            G.reset();
-            Scene.v().addBasicClass("java.lang.StringBuilder");
-            Scene.v().addBasicClass("java.io.PrintStream");
-            Scene.v().addBasicClass("java.lang.System");
-            Scene.v().addBasicClass("java.lang.String");
-            Scene.v().addBasicClass("com.sun.crypto.provider.Cipher.AEAD.ReadWriteSkip$SkipTest");
-            Configuration.initSootEnvWithClassPath(targetProject.getpClassPath() + System.getProperty("path.separator") + mutationProject.getpClassPath());
-            Configuration.set_output_path(targetProject.getSrcClassPath());
+            sceneReset(targetProject.getpClassPath() + System.getProperty("path.separator") + mutationProject.getpClassPath(), targetProject.getSrcClassPath());
             // Overwrite the files in SootOutput with files in 02Benchmark
             List<String> seedClasses = originProject.getApplicationClasses();
             MainHelper.restoreBadClasses(seedClasses, originProject, targetProject);
@@ -415,6 +416,9 @@ public class Main {
                     }
                 }
             }
+            for (SootMethod seedMethod : seedMethods) {
+                seedMethod.releaseActiveBody();
+            }
             Scene.v().removeClass(seedClass);
 
         }
@@ -545,5 +549,16 @@ public class Main {
                 }
             }
         }
+    }
+    private static void sceneReset(String pClassPath, String srcClassPath){
+        G.reset();
+        Configuration.initSootEnvWithClassPath(pClassPath);
+        Configuration.set_output_path(srcClassPath);
+        Scene.v().addBasicClass("compiler.types.TestPhiElimination$A",SootClass.HIERARCHY);
+        Scene.v().addBasicClass("java.lang.StringBuilder",SootClass.HIERARCHY);
+        Scene.v().addBasicClass("java.io.PrintStream",SootClass.HIERARCHY);
+        Scene.v().addBasicClass("java.lang.System",SootClass.HIERARCHY);
+        Scene.v().addBasicClass("java.lang.String",SootClass.HIERARCHY);
+        Scene.v().addBasicClass("com.sun.crypto.provider.Cipher.AEAD.ReadWriteSkip$SkipTest",SootClass.HIERARCHY);
     }
 }

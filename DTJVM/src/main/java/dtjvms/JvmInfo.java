@@ -26,6 +26,9 @@ public class JvmInfo {
         this.javaCmd = javaCmd;
         this.jvmId = jvmName + "-" + version + "-" + folderName;
     }
+    public void setJavaCmd(String javaCmd){
+        this.javaCmd = javaCmd;
+    }
 
     public void setVmOptions(VMOptions vmOptions){
 

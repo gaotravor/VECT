@@ -238,49 +238,10 @@ public class CFMExecutor extends Executor {
 
         for (JvmInfo jvm : jvms) {
 
-            if(jvm.getJvmName().equals("jvmCoverage")){
 
-
-                String cmdExecute = ExecutorHelper.assembleJavaCmd(jvm.getJavaCmd(), pOptions, classpath, className, isJunit, args);
-//                System.out.println(cmdExecute);
-                Thread ctester = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        getInstance().execute(cmdExecute);
-                    }
-                });
-                ctester.start();
-                try {
-                    TimeUnit.SECONDS.timedJoin(ctester, DTConfiguration.CLASS_MAX_RUNTIME);
-                    CFMExecutor.getInstance().shutDown();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                continue;
-            }
-            StringBuilder options = new StringBuilder();
-            if(DTGlobal.useVMOptions){
-                if(jvm.getJvmName().toLowerCase(Locale.ROOT).contains("hotspot")){
-                    options = new StringBuilder(" -XX:CompileThreshold=2");
-                    if(jvm.getVmOptions() != null){
-                        options.append(" -Xcomp -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+IgnoreUnrecognizedVMOptions");
-                        Set<Integer> indexSet = new HashSet<>();
-                        for(int i=0;i<new Random().nextInt(jvm.getVmOptions().getOptions().size());i++){
-                            indexSet.add(new Random().nextInt(jvm.getVmOptions().getOptions().size()));
-                        }
-                        for (Integer integer : indexSet) {
-                            options.append(" ").append(jvm.getVmOptions().getOptions().get(integer).getCmd());
-                        }
-                    }
-                }
-                if(jvm.getJvmName().toLowerCase(Locale.ROOT).contains("openj9")){
-                    options = new StringBuilder(" -Xjit:count=2");
-                }
-            }
 
             String jvmId = jvm.getJvmId() != null ? jvm.getJvmId() : jvm.getFolderName();
-            String cmdExecute = ExecutorHelper.assembleJavaCmd(jvm.getJavaCmd()+options, pOptions, classpath, className, isJunit, args);
+            String cmdExecute = ExecutorHelper.assembleJavaCmd(jvm.getJavaCmd(), pOptions, classpath, className, isJunit, args);
             System.out.println(cmdExecute);
 
             getInstance().execute(cmdExecute);
@@ -296,7 +257,7 @@ public class CFMExecutor extends Executor {
                 }
                 System.out.println("stdout:" + currentOutput.getStdout());
                 System.out.println("stderr:" + currentOutput.getStderr());
-                results.put(jvmId+options, currentOutput);
+                results.put(jvmId, currentOutput);
 
             } else {
                 results.put(jvmId, new JvmOutput("","JvmOutput-TIMEOUT"));

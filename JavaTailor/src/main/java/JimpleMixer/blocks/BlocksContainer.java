@@ -50,6 +50,10 @@ public class BlocksContainer {
             List<BlockInfo> blockMutants = BlocksContainer.getBlocksFromSootClass(mutantClass);
             allMutationMap.put(mutation, blockMutants);
             validMutationMap.put(mutation, filterInvalidBlocks(blockMutants));
+            for (SootMethod method : mutantClass.getMethods()) {
+                method.releaseActiveBody();
+            }
+            Scene.v().removeClass(mutantClass);
         }
 
     }

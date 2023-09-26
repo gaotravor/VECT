@@ -23,22 +23,20 @@ public class ExecutorHelper {
      * @throws IOException If an I/O error occurs.
      */
 
-
     public static JvmOutput getJvmOutput(Process process) throws IOException {
 
-        final String[] stdoutBuffer = {""};
-        String stderrBuffer = "";
+        StringBuilder stdoutBuffer = new StringBuilder();
+        StringBuilder stderrBuffer = new StringBuilder();
 
         try {
             InputStream inputStream = process.getInputStream();
             InputStream errorStream = process.getErrorStream();
-
             BufferedReader inputReader = new BufferedReader(new InputStreamReader(inputStream));
             try {
                 String line = null ;
                 while ((line = inputReader.readLine()) !=  null ){
 
-                    stdoutBuffer[0] = stdoutBuffer[0] + line + "\n";
+                    stdoutBuffer.append(line).append("\n");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -56,7 +54,7 @@ public class ExecutorHelper {
             try {
                 String line = null;
                 while ((line = errorReader.readLine()) != null) {
-                    stderrBuffer = stderrBuffer + line + "\n";
+                    stderrBuffer.append(line).append("\n");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -74,7 +72,7 @@ public class ExecutorHelper {
             e.printStackTrace();
         }
 
-        return new JvmOutput(stdoutBuffer[0], stderrBuffer, process.exitValue());
+        return new JvmOutput(stdoutBuffer.toString(), stderrBuffer.toString(), process.exitValue());
     }
 
     /**
