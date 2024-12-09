@@ -31,5 +31,4 @@ target
 .idea
 .jython_cache
 *.iml
-*.class
 .DS_Store
